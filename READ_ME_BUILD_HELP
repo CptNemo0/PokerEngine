@@ -1,0 +1,7 @@
+IXWebsocket has CI for Windows + TLS disabled.
+When totally cleaning the build dir those 2 lines are going to be needed in "IXSocketMbedTLS.cpp" file - otherwise compiler will throw 8 errors.
+#include <mbedtls/version.h>
+#include <psa/crypto.h>
+
+cmake -G "Ninja" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DUSE_TLS=1 -DUSE_WS=1 -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/vcpkg/scripts/buildsystems/vcpkg.cmake" ..
+"-DCMAKE_TOOLCHAIN_FILE" - configure it for yourself. I am using vcpkg and this works for me.
