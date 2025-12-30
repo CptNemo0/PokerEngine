@@ -3,7 +3,11 @@ When totally cleaning the build dir those 2 lines are going to be needed in "IXS
 #include <mbedtls/version.h>
 #include <psa/crypto.h>
 
-cmake -G "Ninja" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DUSE_TLS=1 -DUSE_WS=1 -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/vcpkg/scripts/buildsystems/vcpkg.cmake" ..
+1. Generate project:
+cmake -G "Ninja" -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DUSE_TLS=1 -DUSE_WS=1 -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/vcpkg/scripts/buildsystems/vcpkg.cmake" -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ..
 "-DCMAKE_TOOLCHAIN_FILE" - configure it for yourself. I am using vcpkg and this works for me.
+"-DCMAKE_EXPORT_COMPILE_COMMANDS=1" - when set it generates compile_commands.json file. Create a symbolic link to this file so that clangd can use it:
+mklink "compile_commands.json" "build/compile_commands.json"
 
+2. Build project
 cmake --build .

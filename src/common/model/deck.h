@@ -1,17 +1,18 @@
-#ifndef SERVER_DECK_H_
-#define SERVER_DECK_H_
+#ifndef COMMON_MODEL_DECK_H_
+#define COMMON_MODEL_DECK_H_
 
 #include <array>
 #include <cstddef>
 #include <optional>
 #include <random>
 
-#include "card.h"
+#include "model/card.h"
 
 namespace model {
 
 constexpr std::size_t gDeckSize = 52;
 
+// `Deck` class models a randomly shuffled collection of `Card` objects.
 class Deck {
   public:
     Deck();
@@ -46,4 +47,4 @@ class Deck {
 
 } // namespace model
 
-#endif // !SERVER_DECK_H_
+#endif // !COMMON_MODEL_DECK_H_

@@ -1,5 +1,5 @@
-#ifndef SERVER_CARD_H_
-#define SERVER_CARD_H_
+#ifndef COMMON_MODEL_CARD_H_
+#define COMMON_MODEL_CARD_H_
 
 #include "aliasing.h"
 
@@ -8,6 +8,8 @@ namespace model {
 constexpr u32 gSuitNumber = 4;
 constexpr u32 gRankNumber = 13;
 
+// `Card` is a main class in the data model of the application - it models a
+// singular playing card.
 class Card {
   public:
     enum class Suit {
@@ -61,4 +63,4 @@ class Card {
 
 } // namespace model
 
-#endif // !SERVER_CARD_H_
+#endif // !COMMON_MODEL_CARD_H_

@@ -3,9 +3,9 @@
 #include <string>
 
 #include "aliasing.h"
-#include "card.h"
-#include "card_serializer.h"
-#include "deck.h"
+#include "model/card.h"
+#include "model/deck.h"
+#include "utility/card_serializer.h"
 
 int main() {
   model::Deck deck;

@@ -1,4 +1,4 @@
-#include "deck.h"
+#include "model/deck.h"
 
 #include <algorithm>
 #include <array>
@@ -6,7 +6,7 @@
 #include <optional>
 
 #include "aliasing.h"
-#include "card.h"
+#include "model/card.h"
 
 namespace model {
 

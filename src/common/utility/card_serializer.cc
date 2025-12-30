@@ -5,7 +5,7 @@
 #include <string>
 #include <string_view>
 
-#include "card.h"
+#include "model/card.h"
 
 namespace utility {
 
