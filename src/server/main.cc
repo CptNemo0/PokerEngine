@@ -11,7 +11,10 @@
 
 class HandEvaluator {
   public:
-    void Evaluate(std::span<model::Card> hand) {
+    void Evaluate(std::span<const model::Card> hand) {
+      for (const auto& element : hand) {
+        std::print("{} |", utility::CardSerializer::Serialize(element));
+      }
     }
 };
 
@@ -33,9 +36,10 @@ int main() {
   hand.insert(card5);
   hand.insert(card6);
 
-  for (const auto& element : hand.data()) {
-    std::print("{} |", utility::CardSerializer::Serialize(element));
-  }
+  std::span<const model::Card> card_span{hand.underlying()};
+
+  HandEvaluator evaluator;
+  evaluator.Evaluate(card_span);
 
   return 0;
   u32 i = 0;
