@@ -42,10 +42,6 @@ bool Card::operator<(const Card& other) const {
 };
 
 u32 Card::value() const {
-  if (suit() == Card::Suit::kNone || rank() == Card::Rank::kNone) {
-    throw std::exception("Trying to evaluate uninitialized card!");
-  }
-
   return static_cast<u32>(suit()) * gRankNumber + static_cast<u32>(rank());
 }
 

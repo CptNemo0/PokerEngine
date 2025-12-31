@@ -114,7 +114,7 @@ char RankToChar(model::Card::Rank rank) {
 } // namespace
 
 std::string CardSerializer::Serialize(const model::Card& card) {
-  return std::format("{} {}", SuitToChar(card.suit()), RankToChar(card.rank()));
+  return std::format("{}{}", SuitToChar(card.suit()), RankToChar(card.rank()));
 }
 
 std::optional<model::Card> CardSerializer::Deserialize(std::string_view data) {
