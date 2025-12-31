@@ -3,6 +3,7 @@ set(SOURCE_FILES
     model/card.h
     utility/card_serializer.cc
     utility/card_serializer.h
+    utility/sorted_vector.h
 )
 
 add_library(common STATIC ${SOURCE_FILES})

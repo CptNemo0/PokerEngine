@@ -12,7 +12,7 @@ constexpr u32 gRankNumber = 13;
 // singular playing card.
 class Card {
   public:
-    enum class Suit {
+    enum class Suit : i8 {
       kNone = -1,
       kMinValue = 0,
       kSpades = kMinValue,
@@ -22,7 +22,7 @@ class Card {
       kMaxValue = kHearts,
     };
 
-    enum class Rank {
+    enum class Rank : i8 {
       kNone = -1,
       kMinValue = 0,
       kTwo = kMinValue,
@@ -34,15 +34,26 @@ class Card {
       kEighth = 6,
       kNine = 7,
       kTen = 8,
-      kAce = 9,
-      kJack = 10,
-      kQueen = 11,
-      kKing = 12,
-      kMaxValue = kKing,
+      kJack = 9,
+      kQueen = 10,
+      kKing = 11,
+      kAce = 12,
+      kMaxValue = kAce,
     };
 
     Card() = default;
     Card(Card::Suit suit, Card::Rank rank);
+    Card(const Card& other);
+    Card(Card&& other) noexcept;
+
+    void operator=(const Card& other);
+    void operator=(Card&& other) noexcept;
+
+    bool operator==(const Card& other) const {
+      return other.suit() == suit() && other.rank() == rank();
+    }
+    bool operator>(const Card& other) const;
+    bool operator<(const Card& other) const;
 
     Card::Suit suit() const {
       return suit_;
@@ -52,9 +63,7 @@ class Card {
       return rank_;
     }
 
-    bool operator==(const Card& other) const {
-      return other.suit() == suit() && other.rank() == rank();
-    }
+    u32 value() const;
 
   private:
     Suit suit_{Card::Suit::kNone};
