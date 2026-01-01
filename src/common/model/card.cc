@@ -1,7 +1,6 @@
 #include "model/card.h"
 
 #include <cassert>
-#include <exception>
 #include <utility>
 
 #include "aliasing.h"
@@ -30,14 +29,16 @@ void Card::operator=(Card&& other) noexcept {
 };
 
 bool Card::operator>(const Card& other) const {
-  if (rank_ == other.rank_)
+  if (rank_ == other.rank_) {
     return suit_ > other.suit_;
+  }
   return rank_ > other.rank_;
 };
 
 bool Card::operator<(const Card& other) const {
-  if (rank_ == other.rank_)
+  if (rank_ == other.rank_) {
     return suit_ < other.suit_;
+  }
   return rank_ < other.rank_;
 };
 
