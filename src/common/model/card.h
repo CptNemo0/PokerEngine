@@ -12,18 +12,17 @@ constexpr u32 gRankNumber = 13;
 // singular playing card.
 class Card {
   public:
-    enum class Suit : i8 {
-      kNone = -1,
+    enum class Suit : u8 {
       kMinValue = 0,
       kSpades = kMinValue,
       kClubs = 1,
       kDiamonds = 2,
       kHearts = 3,
       kMaxValue = kHearts,
+      kMemberCount = 4,
     };
 
-    enum class Rank : i8 {
-      kNone = -1,
+    enum class Rank : u8 {
       kMinValue = 0,
       kTwo = kMinValue,
       kThree = 1,
@@ -39,6 +38,7 @@ class Card {
       kKing = 11,
       kAce = 12,
       kMaxValue = kAce,
+      kMemberCount = 13,
     };
 
     Card() = default;
@@ -66,8 +66,8 @@ class Card {
     u32 value() const;
 
   private:
-    Suit suit_{Card::Suit::kNone};
-    Rank rank_{Card::Rank::kNone};
+    Suit suit_{};
+    Rank rank_{};
 };
 
 } // namespace model

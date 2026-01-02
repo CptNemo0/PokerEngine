@@ -14,8 +14,7 @@ Card::Card(const Card& other) : Card(other.suit(), other.rank()) {
 }
 
 Card::Card(Card&& other) noexcept
-    : Card(std::exchange(other.suit_, Card::Suit::kNone),
-           std::exchange(other.rank_, Card::Rank::kNone)) {
+    : Card(std::exchange(other.suit_, {}), std::exchange(other.rank_, {})) {
 }
 
 void Card::operator=(const Card& other) {
@@ -24,8 +23,8 @@ void Card::operator=(const Card& other) {
 }
 
 void Card::operator=(Card&& other) noexcept {
-  suit_ = std::exchange(other.suit_, Card::Suit::kNone);
-  rank_ = std::exchange(other.rank_, Card::Rank::kNone);
+  suit_ = std::exchange(other.suit_, {});
+  rank_ = std::exchange(other.rank_, {});
 };
 
 bool Card::operator>(const Card& other) const {

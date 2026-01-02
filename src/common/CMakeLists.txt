@@ -4,6 +4,7 @@ set(SOURCE_FILES
     utility/card_serializer.cc
     utility/card_serializer.h
     utility/sorted_vector.h
+    utility/enum_indexable_array.h
 )
 
 add_library(common STATIC ${SOURCE_FILES})

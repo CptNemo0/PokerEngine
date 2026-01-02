@@ -6,11 +6,11 @@
 #include <ranges>
 #include <span>
 #include <string>
-#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 
 #include "aliasing.h"
+#include "enum_indexable_array.h"
 #include "model/card.h"
 #include "model/deck.h"
 #include "utility/card_serializer.h"
@@ -42,8 +42,15 @@ class HandEvaluator {
       };
 
       card_count_mapping_.clear();
-      suit_count_mapping_.clear();
-      rank_count_mapping_.clear();
+      // suit_count_mapping_.clear();
+
+      for (std::size_t i{}; i < suit_count_mapping_.size(); i++) {
+        suit_count_mapping_[i] = 0;
+      }
+
+      for (std::size_t i{}; i < rank_count_mapping_.size(); i++) {
+        rank_count_mapping_[i] = 0;
+      }
 
       for (const model::Card& card : hand) {
         card_count_mapping_.insert(card);
@@ -61,7 +68,7 @@ class HandEvaluator {
       return CombinationType::kHighCard;
     }
 
-  public:
+  private:
     using return_type = std::pair<bool, CombinationType>;
     using hand_type = std::span<const model::Card>;
     using checker_function = return_type (HandEvaluator::*)(hand_type) const;
@@ -70,52 +77,44 @@ class HandEvaluator {
     // if any suit appears more than 4 times, than if those cards are
     // correct.
     return_type CheckRoyalFlush([[maybe_unused]] hand_type hand) const {
-      const model::Card::Suit potential_flush_suit = [&]() {
-        for (const auto& [key, value] : suit_count_mapping_) {
-          if (value > 4) {
-            return key;
-          }
-        }
-        return model::Card::Suit::kNone;
-      }();
+      const std::optional<model::Card::Suit> potential_flush_suit =
+          suit_count_mapping_.return_enum_for([](u8 value) {
+            return value > 4;
+          });
 
-      if (potential_flush_suit == model::Card::Suit::kNone) {
-        return {false, CombinationType::kRoyalFlush};
+      if (!potential_flush_suit.has_value()) {
+        return {false, {}};
       }
 
       const bool result =
           card_count_mapping_.contains(
-              {potential_flush_suit, model::Card::Rank::kTen}) &&
+              {potential_flush_suit.value(), model::Card::Rank::kTen}) &&
           card_count_mapping_.contains(
-              {potential_flush_suit, model::Card::Rank::kJack}) &&
+              {potential_flush_suit.value(), model::Card::Rank::kJack}) &&
           card_count_mapping_.contains(
-              {potential_flush_suit, model::Card::Rank::kQueen}) &&
+              {potential_flush_suit.value(), model::Card::Rank::kQueen}) &&
           card_count_mapping_.contains(
-              {potential_flush_suit, model::Card::Rank::kKing}) &&
+              {potential_flush_suit.value(), model::Card::Rank::kKing}) &&
           card_count_mapping_.contains(
-              {potential_flush_suit, model::Card::Rank::kAce});
+              {potential_flush_suit.value(), model::Card::Rank::kAce});
 
       return {result, CombinationType::kRoyalFlush};
     }
 
-    // Straight flush contains cards 10 J Q K A of the same suit. First check if
+    // Straight flush contains cards of the same suit. First check if
     // any suit appears more than 4 times. Later hand is filtered for ease of
     // use. Since the hand was sorted finding longest consecutive subsequence is
     // trivial.
     return_type CheckStraightFlush(hand_type hand) const {
       // Find potential flush suit. If one does not exist, return false and
       // uninitialized card.
-      const model::Card::Suit potential_flush_suit = [&]() {
-        for (const auto& [key, value] : suit_count_mapping_) {
-          if (value > 4) {
-            return key;
-          }
-        }
-        return model::Card::Suit::kNone;
-      }();
+      const std::optional<model::Card::Suit> potential_flush_suit =
+          suit_count_mapping_.return_enum_for([](u8 value) {
+            return value > 4;
+          });
 
-      if (potential_flush_suit == model::Card::Suit::kNone) {
-        return {false, CombinationType::kStraightFlush};
+      if (!potential_flush_suit.has_value()) {
+        return {false, {}};
       }
 
       // If potential flush exist find the longest consecutive sequence of
@@ -148,7 +147,7 @@ class HandEvaluator {
 
         if (max_consecutive_counter >= 4) {
           streak_ending_card =
-              model::Card{potential_flush_suit, iterator->rank()};
+              model::Card{potential_flush_suit.value(), iterator->rank()};
         }
         previous_rank = iterator->rank();
       }
@@ -160,12 +159,12 @@ class HandEvaluator {
 
     // Four of a kind is pretty self explanatorily.
     return_type CheckFourOfAKind([[maybe_unused]] hand_type hand) const {
-      for (const auto& [key, value] : rank_count_mapping_) {
-        if (value == 4) {
-          return {true, CombinationType::kFourOfAKind};
-        }
-      }
-      return {false, CombinationType::kFourOfAKind};
+      return {rank_count_mapping_
+                  .return_enum_for([](u8 value) {
+                    return value == 4;
+                  })
+                  .has_value(),
+              CombinationType::kFourOfAKind};
     }
 
     return_type CheckFullHouse(hand_type hand) const {
@@ -177,19 +176,12 @@ class HandEvaluator {
     }
 
     return_type CheckFlush(hand_type hand) const {
-      for (const auto& [suit, count] : suit_count_mapping_) {
-        if (count == 5) {
-          // Since the hand is sorted in order of ascending rank, the first card
-          // with the correct rank, when iterating from end to beginning, will
-          // be the card with the greatest rank in the flush.
-          for (std::size_t i{hand.size() - 1}; i > -1; i--) {
-            if (hand[i].suit() == suit) {
-              return {true, CombinationType::kFlush};
-            }
-          }
-        }
-      }
-      return {false, CombinationType::kFlush};
+      return {suit_count_mapping_
+                  .return_enum_for([](u8 value) {
+                    return value == 5;
+                  })
+                  .has_value(),
+              CombinationType::kFlush};
     }
 
     // Straight is defined as 5 cards with the consecutive ranks. Since the hand
@@ -221,51 +213,67 @@ class HandEvaluator {
     }
 
     return_type CheckThreeOfAKind([[maybe_unused]] hand_type hand) const {
-      u8 triplet_counter = 0;
-      for (const auto& [rank, count] : rank_count_mapping_) {
-        if (count == 3) {
-          triplet_counter++;
-        }
-      }
-      return {triplet_counter >= 1, CombinationType::kThreeOfAKind};
+      return {rank_count_mapping_
+                  .return_enum_for([](u8 value) {
+                    return value == 3;
+                  })
+                  .has_value(),
+              CombinationType::kFourOfAKind};
     }
 
     return_type CheckTwoPair([[maybe_unused]] hand_type hand) const {
-      u8 pair_counter = 0;
-      for (const auto& [rank, count] : rank_count_mapping_) {
-        if (count == 2) {
-          pair_counter++;
-        }
+      // Check if there is at least one pair.
+      const std::optional<model::Card::Rank> potential_rank_1 =
+          rank_count_mapping_.return_enum_for([](u8 value) {
+            return value == 2;
+          });
+
+      // Return if there isn't at least one pair.
+      if (!potential_rank_1.has_value()) {
+        return {false, {}};
       }
-      return {pair_counter == 2, CombinationType::kTwoPair};
+
+      // Try to find another pair.
+      const u8 first_pair_rank = static_cast<u8>(potential_rank_1.value());
+      return {rank_count_mapping_
+                  .return_enum_for([first_pair_rank](u8 value) {
+                    // Rank of the fairs pair should be omitted.
+                    if (value == first_pair_rank) {
+                      return false;
+                    }
+                    return value == 2;
+                  })
+                  .has_value(),
+              CombinationType::kTwoPair};
     }
 
     return_type CheckPair([[maybe_unused]] hand_type hand) const {
-      u8 pair_counter = 0;
-      for (const auto& [rank, count] : rank_count_mapping_) {
-        if (count == 2) {
-          pair_counter++;
-        }
-      }
-      return {pair_counter == 1, CombinationType::kPair};
+      return {rank_count_mapping_
+                  .return_enum_for([](u8 value) {
+                    return value == 2;
+                  })
+                  .has_value(),
+              CombinationType::kPair};
     }
 
     std::unordered_set<model::Card, decltype([](const model::Card& card) {
                          return static_cast<std::size_t>(card.value());
                        })>
         card_count_mapping_;
-    std::unordered_map<model::Card::Suit, u8> suit_count_mapping_;
-    std::unordered_map<model::Card::Rank, u8> rank_count_mapping_;
+
+    utility::enum_indexable_array<model::Card::Suit, u8, 4> suit_count_mapping_;
+    utility::enum_indexable_array<model::Card::Rank, u8, 13>
+        rank_count_mapping_;
 };
 
 int main() {
   model::Deck deck;
 
-  model::Card card1{model::Card::Suit::kDiamonds, model::Card::Rank::kKing};
-  model::Card card2{model::Card::Suit::kHearts, model::Card::Rank::kKing};
-  model::Card card3{model::Card::Suit::kClubs, model::Card::Rank::kQueen};
-  model::Card card4{model::Card::Suit::kHearts, model::Card::Rank::kQueen};
-  model::Card card5{model::Card::Suit::kSpades, model::Card::Rank::kQueen};
+  model::Card card1{model::Card::Suit::kHearts, model::Card::Rank::kKing};
+  model::Card card2{model::Card::Suit::kDiamonds, model::Card::Rank::kKing};
+  model::Card card3{model::Card::Suit::kHearts, model::Card::Rank::kTen};
+  model::Card card4{model::Card::Suit::kDiamonds, model::Card::Rank::kTen};
+  model::Card card5{model::Card::Suit::kHearts, model::Card::Rank::kFive};
 
   sorted_vector<model::Card> hand;
   hand.insert(card1);
@@ -277,7 +285,7 @@ int main() {
   HandEvaluator evaluator;
   CombinationType combination = evaluator.Evaluate(hand.underlying());
 
-  std::print("combination type {}\n", static_cast<i8>(combination));
+  std::print("combination type {}\n", static_cast<u8>(combination));
 
   return 0;
   u32 i = 0;

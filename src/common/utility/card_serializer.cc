@@ -1,7 +1,9 @@
 #include "card_serializer.h"
 
+#include <exception>
 #include <format>
 #include <optional>
+#include <print>
 #include <string>
 #include <string_view>
 
@@ -23,7 +25,7 @@ model::Card::Suit CharToSuit(char character) {
   case 'H':
     return Suit::kHearts;
   default:
-    return Suit::kNone;
+    throw std::exception("Could not parse the character to suit");
   }
 }
 
@@ -57,7 +59,7 @@ model::Card::Rank CharToRank(char character) {
   case 'K':
     return Rank::kKing;
   default:
-    return Rank::kNone;
+    throw std::exception{};
   }
 }
 
@@ -72,8 +74,6 @@ char SuitToChar(model::Card::Suit suit) {
     return 'D';
   case Suit::kHearts:
     return 'H';
-  case Suit::kNone:
-    return 'N';
   }
 }
 
@@ -106,8 +106,6 @@ char RankToChar(model::Card::Rank rank) {
     return 'Q';
   case Rank::kKing:
     return 'K';
-  case Rank::kNone:
-    return 'N';
   }
 }
 
@@ -119,15 +117,25 @@ std::string CardSerializer::Serialize(const model::Card& card) {
 
 std::optional<model::Card> CardSerializer::Deserialize(std::string_view data) {
   if (data.length() != 3) {
-    return std::optional<model::Card>(std::nullopt);
+    return std::nullopt;
   }
 
-  const model::Card::Suit suit = CharToSuit(data.at(0));
-  const model::Card::Rank rank = CharToRank(data.at(2));
+  model::Card::Suit suit{};
+  model::Card::Rank rank{};
+  try {
+    suit = CharToSuit(data.at(0));
+  } catch (const std::exception& e) {
+    std::print("Could not parse character \"{}\"to suit.\n", data.at(0));
+    return std::nullopt;
+  }
 
-  return suit == model::Card::Suit::kNone || rank == model::Card::Rank::kNone
-             ? std::optional<model::Card>(std::nullopt)
-             : std::optional<model::Card>(model::Card(suit, rank));
+  try {
+    rank = CharToRank(data.at(1));
+  } catch (const std::exception& e) {
+    std::print("Could not parse character \"{}\"to rank.\n", data.at(0));
+    return std::nullopt;
+  }
+  return model::Card{suit, rank};
 }
 
 } // namespace utility
