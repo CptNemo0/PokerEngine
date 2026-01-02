@@ -1,5 +1,5 @@
 IXWebsocket has CI for Windows + TLS disabled.
-When totally cleaning the build dir those 2 lines are going to be needed in "IXSocketMbedTLS.cpp" file - otherwise compiler will throw 8 errors.
+When totally cleaning the build dir those 2 lines are going to be needed in  file - otherwise compiler will throw 8 errors.
 #include <mbedtls/version.h>
 #include <psa/crypto.h>
 
