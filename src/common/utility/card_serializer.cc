@@ -116,7 +116,7 @@ std::string CardSerializer::Serialize(const model::Card& card) {
 }
 
 std::optional<model::Card> CardSerializer::Deserialize(std::string_view data) {
-  if (data.length() != 3) {
+  if (data.length() != 2) {
     return std::nullopt;
   }
 

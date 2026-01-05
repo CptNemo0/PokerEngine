@@ -74,7 +74,7 @@ class enum_indexable_array {
     std::optional<EnumType> return_enum_for(Pred pred) const {
       static_assert(static_cast<size_type>(EnumType::kMemberCount) == N,
                     "Enum contains invalid number of members");
-      for (size_type i{}; i < size(); i++) {
+      for (auto i = 0uz; i < size(); i++) {
         if (pred(data_[i])) {
           return static_cast<EnumType>(i);
         }
