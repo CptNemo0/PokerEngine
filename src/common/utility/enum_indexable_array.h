@@ -9,7 +9,7 @@
 #include <utility>
 #include <vcruntime_typeinfo.h>
 
-namespace utility {
+namespace common::utility {
 
 // Enum Indexable Array is intended to be used as a mapping between an enum
 // class and other type. It's main strength is std::array as an underlying type
@@ -86,6 +86,6 @@ class enum_indexable_array {
     std::array<StoredType, N> data_;
 };
 
-} // namespace utility
+} // namespace common::utility
 
 #endif // !COMMON_UTILITY_ENUM_INDEXABLE_ARRAY_H_

@@ -3,7 +3,7 @@
 
 #include <ixwebsocket/IXNetSystem.h>
 
-namespace net {
+namespace common::net {
 class NetInitManager {
   public:
     static void Initialize() {
@@ -24,6 +24,6 @@ class NetInitManager {
       ix::initNetSystem();
     }
 };
-} // namespace net
+} // namespace common::net
 
 #endif // !COMMON_NET_NET_INIT_MANGET_H

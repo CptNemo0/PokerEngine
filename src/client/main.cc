@@ -1,5 +1,8 @@
 #include "ixwebsocket/IXWebSocketMessage.h"
 #include "ixwebsocket/IXWebSocketMessageType.h"
+#include <cstdlib>
+#include <ctime>
+#include <format>
 #include <ixwebsocket/IXNetSystem.h>
 #include <ixwebsocket/IXWebSocket.h>
 
@@ -9,10 +12,11 @@
 #include "net/net_init_manager.h"
 
 int main() {
-  net::NetInitManager::Initialize();
+  srand(time(0uz) * 100.0f);
+  common::net::NetInitManager::Initialize();
   ix::WebSocket webSocket;
   std::cout << "Creating websocket\n";
-  std::string url("ws://localhost:8008/new_uri-thingy");
+  std::string url = std::format("ws://localhost:8008/user-{}", rand());
   webSocket.setUrl(url);
 
   // Optional heart beat, sent every 45 seconds when there is not any traffic

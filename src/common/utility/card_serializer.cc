@@ -9,7 +9,7 @@
 
 #include "model/card.h"
 
-namespace utility {
+namespace common::utility {
 
 namespace {
 
@@ -138,4 +138,4 @@ std::optional<model::Card> CardSerializer::Deserialize(std::string_view data) {
   return model::Card{suit, rank};
 }
 
-} // namespace utility
+} // namespace common::utility

@@ -7,7 +7,7 @@
 
 #include "model/card.h"
 
-namespace utility {
+namespace common::utility {
 
 // `CardSerializer` is a utility class that serializes and deserializes `Card`
 // objects.
@@ -21,6 +21,6 @@ class CardSerializer {
     static std::optional<model::Card> Deserialize(std::string_view data);
 };
 
-} // namespace utility
+} // namespace common::utility
 
 #endif // !COMMON_CARD_SERIALIZER_H_

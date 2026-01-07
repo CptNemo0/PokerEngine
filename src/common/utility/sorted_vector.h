@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <vector>
 
+namespace common::utility {
+
 template <class T> class sorted_vector {
   public:
     using container_type = std::vector<T>;
@@ -47,5 +49,7 @@ template <class T> class sorted_vector {
   private:
     container_type data_;
 };
+
+} // namespace common::utility
 
 #endif // !SERVER_UTILITY_SORTED_VECTOR_H
