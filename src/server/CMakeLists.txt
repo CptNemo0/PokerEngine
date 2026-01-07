@@ -2,9 +2,14 @@ set(SOURCE_FILES
     main.cc
     server.cc
     server.h
+    lobby.h
+    game_assembler.cc
+    game_assembler.h
+    server_constants.h
     model/deck.cc
     model/deck.h
     model/hand_evaluator.cc
+    model/hand_evaluator.h
     model/hand_evaluator.h
 )
 

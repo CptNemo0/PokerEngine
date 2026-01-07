@@ -1,44 +1,37 @@
-#include <algorithm>
 #include <format>
 #include <iostream>
-#include <memory>
 #include <optional>
 #include <print>
 #include <string>
 
+#include <ixwebsocket/IXConnectionState.h>
 #include <ixwebsocket/IXNetSystem.h>
-#include <string_view>
-#include <vector>
+#include <ixwebsocket/IXWebSocket.h>
 
 #include "aliasing.h"
-#include "ixwebsocket/IXConnectionState.h"
-#include "ixwebsocket/IXWebSocket.h"
+
+#include "game_assembler.h"
+#include "lobby.h"
 #include "model/card.h"
 #include "model/deck.h"
 #include "model/hand_evaluator.h"
 #include "net/net_init_manager.h"
 #include "server.h"
+#include "server_constants.h"
 #include "utility/card_serializer.h"
 #include "utility/sorted_vector.h"
-#include "utility/ts_queue.h"
-// Lobby should have a scheduler == croupier
 
-namespace {
-
-constexpr std::string_view gHost = "127.0.0.1";
-constexpr int gPort = 8008;
-
-constexpr u8 gMaxPlayersInLobby = 3;
-
-} // namespace
-
-class MessageDispatcher {};
+namespace server {} // namespace server
 
 int main() {
   common::net::NetInitManager::Initialize();
 
-  server::Server server{gPort, gHost};
+  server::Lobby lobby;
+  server::GameAssembler game_assembler{lobby};
+  server::Server server{server::gPort, server::gHost, lobby};
+
   server.Start();
+  game_assembler.Run();
   char a = ' ';
   while (a != 'q') {
     std::cin >> a;
@@ -65,9 +58,9 @@ int main() {
   u32 i = 0;
   while (const std::optional<model::Card> card = deck.Deal()) {
     const std::string card_serialized =
-        common::utility::CardSerializer::Serialize(card.value());
+      common::utility::CardSerializer::Serialize(card.value());
     const std::optional<model::Card> card_deserialized =
-        common::utility::CardSerializer::Deserialize(card_serialized);
+      common::utility::CardSerializer::Deserialize(card_serialized);
     if (card_deserialized.has_value()) {
       std::print("Card {} : {} | card == card_deserialized: {}\n", i++,
                  card_serialized,
