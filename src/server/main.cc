@@ -7,11 +7,13 @@
 #include <ixwebsocket/IXConnectionState.h>
 #include <ixwebsocket/IXNetSystem.h>
 #include <ixwebsocket/IXWebSocket.h>
+#include <thread>
+#include <utility>
 
 #include "aliasing.h"
 
-#include "game_assembler.h"
 #include "lobby.h"
+#include "match_maker.h"
 #include "model/card.h"
 #include "model/deck.h"
 #include "model/hand_evaluator.h"
@@ -20,18 +22,27 @@
 #include "server_constants.h"
 #include "utility/card_serializer.h"
 #include "utility/sorted_vector.h"
+#include "utility/stacktrace_analyzer.h"
 
-namespace server {} // namespace server
+namespace server {
+
+struct Match {};
+
+} // namespace server
 
 int main() {
   common::net::NetInitManager::Initialize();
+  common::utility::StacktraceAnalyzer::Initialize("server");
+  TRACE_CURRENT_FUNCTION();
 
   server::Lobby lobby;
-  server::GameAssembler game_assembler{lobby};
+  server::MatchMaker matchmaker{lobby};
   server::Server server{server::gPort, server::gHost, lobby};
 
+  std::jthread matchmaker_thread{&server::MatchMaker::Start,
+                                 std::move(matchmaker)};
   server.Start();
-  game_assembler.Run();
+
   char a = ' ';
   while (a != 'q') {
     std::cin >> a;

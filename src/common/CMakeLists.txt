@@ -5,7 +5,8 @@ set(SOURCE_FILES
     utility/card_serializer.h
     utility/sorted_vector.h
     utility/enum_indexable_array.h
-    utility/ts_queue.h
+    utility/stacktrace_analyzer.h
+    utility/stacktrace_analyzer.cc
     net/net_init_manager.h
 )
 

@@ -3,13 +3,14 @@ set(SOURCE_FILES
     server.cc
     server.h
     lobby.h
-    game_assembler.cc
-    game_assembler.h
+    match_maker.cc
+    match_maker.h
+    match_conductor.cc
+    match_conductor.h
     server_constants.h
     model/deck.cc
     model/deck.h
     model/hand_evaluator.cc
-    model/hand_evaluator.h
     model/hand_evaluator.h
 )
 

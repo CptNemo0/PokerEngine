@@ -11,8 +11,10 @@
 #include <print>
 #include <stdexcept>
 #include <string_view>
+#include <utility>
 
 #include "lobby.h"
+#include "stacktrace_analyzer.h"
 
 namespace server {
 
@@ -22,9 +24,11 @@ Server::Server(int port, const std::string_view& host, Lobby& lobby)
 }
 
 void Server::Start() {
+  TRACE_CURRENT_FUNCTION();
   server_->setOnConnectionCallback(
     [&](std::weak_ptr<ix::WebSocket> webSocket,
         std::shared_ptr<ix::ConnectionState> connectionState) {
+      TRACE_CURRENT_FUNCTION();
       std::print("New connection: {}\n", connectionState->getRemoteIp());
       auto ws = webSocket.lock();
       if (!ws) {
@@ -32,7 +36,7 @@ void Server::Start() {
       }
 
       ws->setOnMessageCallback(
-        MessageHandler{{webSocket, connectionState}, this});
+        MessageHandler{webSocket, connectionState, this});
     });
 
   const auto& [result, error] = server_->listen();
@@ -43,26 +47,27 @@ void Server::Start() {
 }
 
 void Server::MessageHandler::operator()(const ix::WebSocketMessagePtr& msg) {
+  TRACE_CURRENT_FUNCTION();
   using MessageType = ix::WebSocketMessageType;
   switch (msg->type) {
   case MessageType::Open:
-    std::print("New connection\nId: {}\nURI: {}\nHeaders:\n",
-               connection.state->getId(), msg->openInfo.uri);
+    std::print("New connection\nId: {}\nURI: {}\nHeaders:\n", state->getId(),
+               msg->openInfo.uri);
     for (auto it : msg->openInfo.headers) {
       std::print("{}: {}\n", it.first, it.second);
     }
     if (!server) {
       return;
     }
-    server->OnNewConnectionEstablished(connection);
+    server->OnNewConnectionEstablished(web_socket, state);
 
     break;
 
   case MessageType::Close:
-    std::print("Closing connection [{}].\nReason: {}\nCode: {}\n",
-               connection.state->getId(), msg->closeInfo.reason,
-               msg->closeInfo.code);
-    server->OnConnectionClosed(connection);
+    // /std::print("Closing connection [{}].\nReason: {}\nCode: {}\n",
+    // connection.state->getId(), msg->closeInfo.reason,
+    // msg->closeInfo.code);
+    // /server->OnConnectionClosed(connection);
     break;
 
   case MessageType::Error:
@@ -70,8 +75,9 @@ void Server::MessageHandler::operator()(const ix::WebSocketMessagePtr& msg) {
     break;
 
   case MessageType::Message:
-    server->OnMessageReceived(msg->str, connection);
-    std::print("Message from [{}]: {}\n", connection.state->getId(), msg->str);
+    // server->OnMessageReceived(msg->str, connection);
+    // std::print("Message from [{}]: {}\n", connection.state->getId(),
+    // msg->str);
     break;
 
   case MessageType::Fragment:
@@ -81,8 +87,11 @@ void Server::MessageHandler::operator()(const ix::WebSocketMessagePtr& msg) {
   }
 }
 
-void Server::OnNewConnectionEstablished(const Connection& connection) {
-  lobby_.Push(connection);
+void Server::OnNewConnectionEstablished(
+  std::weak_ptr<ix::WebSocket> web_socket,
+  std::shared_ptr<ix::ConnectionState> state) {
+  TRACE_CURRENT_FUNCTION();
+  lobby_.Push({web_socket, state});
 }
 
 } // namespace server
