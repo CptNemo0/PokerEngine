@@ -1,5 +1,6 @@
 #include <format>
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <print>
 #include <string>
@@ -24,29 +25,30 @@
 #include "utility/sorted_vector.h"
 #include "utility/stacktrace_analyzer.h"
 
-namespace server {
-
-struct Match {};
-
-} // namespace server
+namespace server {} // namespace server
 
 int main() {
   common::net::NetInitManager::Initialize();
-  common::utility::StacktraceAnalyzer::Initialize("server");
-  TRACE_CURRENT_FUNCTION();
+  common::utility::StacktraceAnalyzer::Initialize();
 
   server::Lobby lobby;
-  server::MatchMaker matchmaker{lobby};
+
   server::Server server{server::gPort, server::gHost, lobby};
+
+  server::MatchMaker matchmaker{lobby};
 
   std::jthread matchmaker_thread{&server::MatchMaker::Start,
                                  std::move(matchmaker)};
+
   server.Start();
 
   char a = ' ';
   while (a != 'q') {
     std::cin >> a;
   }
+
+  matchmaker.Stop();
+  matchmaker_thread.join();
   server.Stop();
 
   return 0;

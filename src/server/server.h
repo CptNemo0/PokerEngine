@@ -28,39 +28,33 @@ class Server {
         std::uint64_t id{(std::numeric_limits<std::uint64_t>::max)()};
 
         Connection() = default;
+
         Connection(std::weak_ptr<ix::WebSocket> socket,
                    std::shared_ptr<ix::ConnectionState> connection_state)
           : web_socket(socket), state(connection_state),
             id(std::stoull(connection_state->getId())) {
-          TRACE_CURRENT_FUNCTION();
+          common::utility::StacktraceAnalyzer::PrintOut();
         }
         Connection(const Connection& other) noexcept
           : Connection(other.web_socket, other.state) {
-          TRACE_CURRENT_FUNCTION();
+          common::utility::StacktraceAnalyzer::PrintOut();
         }
         Connection(Connection&& other) noexcept
           : web_socket(std::move(other.web_socket)),
             state(std::move(other.state)), id(other.id) {
-          TRACE_CURRENT_FUNCTION();
+          common::utility::StacktraceAnalyzer::PrintOut();
         };
 
         void operator=(const Connection& other) noexcept {
-          TRACE_CURRENT_FUNCTION();
           web_socket = other.web_socket;
           state = other.state;
           id = other.id;
         }
         void operator=(Connection&& other) noexcept {
-          TRACE_CURRENT_FUNCTION();
           web_socket = std::move(other.web_socket);
           state = std::move(other.state);
           id = std::exchange(other.id,
                              (std::numeric_limits<std::uint64_t>::max)());
-        }
-
-        ~Connection() {
-          TRACE_CURRENT_FUNCTION();
-          common::utility::StacktraceAnalyzer::PrintOut();
         }
     };
 

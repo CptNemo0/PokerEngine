@@ -9,7 +9,6 @@
 #include "match_conductor.h"
 #include "server.h"
 #include "server_constants.h"
-#include "utility/stacktrace_analyzer.h"
 
 namespace server {
 
@@ -19,7 +18,6 @@ MatchConductor::MatchConductor(
   std::array<Server::Connection, gNumberOfPlayersInGame>&& players,
   Lobby& lobby)
   : players_(std::move(players)), lobby_(lobby) {
-  TRACE_CURRENT_FUNCTION();
   // Placeholder logic
   std::print("Starting a game with players: ");
   for (const auto& player : players) {
@@ -30,13 +28,11 @@ MatchConductor::MatchConductor(
 
 // Placeholder logic
 MatchConductor::~MatchConductor() {
-  TRACE_CURRENT_FUNCTION();
   std::print("MatchConductor Destructor\n");
 }
 
 // Placeholder logic
 void MatchConductor::ConductGame() {
-  TRACE_CURRENT_FUNCTION();
   for (const auto& player : players_) {
     if (auto ws = player.web_socket.lock()) {
       ws->send(std::format("Welcome to the game player: {}", player.id));
@@ -55,7 +51,6 @@ void MatchConductor::ConductGame() {
 }
 
 void MatchConductor::ReturnPlayersToTheLobby() {
-  TRACE_CURRENT_FUNCTION();
   for (auto& player : players_) {
     if (!player.state->isTerminated()) {
       lobby_.Push(std::move(player));

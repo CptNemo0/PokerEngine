@@ -1,72 +1,76 @@
 #include "stacktrace_analyzer.h"
 
-#include <charconv>
-#include <mutex>
+#include <windows.h> // Order of inclusion actually matters on windows. A.D. 2026.
+
+#include <cstdio>
 #include <print>
 #include <stacktrace>
-#include <string>
-#include <string_view>
-#include <unordered_map>
+
+#include <dbghelp.h>
+#include <errhandlingapi.h>
+#include <minwindef.h>
+#include <processthreadsapi.h>
+#include <winbase.h>
+#include <winnt.h>
+#include <winuser.h>
+#pragma comment(lib, "dbghelp.lib")
 
 #include "aliasing.h"
 
 namespace {
 
-std::unordered_map<u64, std::string> location_method_mapping;
-std::string executable_name = "";
-std::mutex map_mutex;
+// Retrives error message and displays a pop up with it.
+// This is taken straight out of Windows API reference.
+void ErrorExit() {
+  LPVOID lpMsgBuf;
+  DWORD dw = GetLastError();
 
-// Parses entry from std::stacktrace::current()[n]::description()
-// For executable serve.exe this entry is structured like that:
-// server+0x1050.
-// The identifier starts at executable_name.size() + 3 because from_chars, does
-// not accept 0x prefix when parsing base 16.
-// Returns part after "+" (location in the binary) converted to u64.
-u64 ParseStacktraceDescription(std::string_view entry) {
-  u64 result = 0;
-  std::from_chars(entry.data() + executable_name.size() + 3,
-                  entry.data() + entry.size(), result, 16);
-  return result;
+  if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                      FORMAT_MESSAGE_FROM_SYSTEM |
+                      FORMAT_MESSAGE_IGNORE_INSERTS,
+                    NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                    reinterpret_cast<LPTSTR>(&lpMsgBuf), 0, NULL) == 0) {
+    MessageBox(NULL, TEXT("FormatMessage failed"), TEXT("Error"), MB_OK);
+    ExitProcess(dw);
+  }
+
+  MessageBox(NULL, static_cast<LPCTSTR>(lpMsgBuf), TEXT("Error"), MB_OK);
+
+  LocalFree(lpMsgBuf);
+  ExitProcess(dw);
 }
 
 } // namespace
 
 namespace common::utility {
 
-void StacktraceAnalyzer::Initialize(const std::string& exe_name) {
-  executable_name = exe_name;
-}
-
-void StacktraceAnalyzer::Map(const std::string& method_name) {
-  // 2 :)
-  // This is offset on the stacktrace
-  const u64 id =
-    ParseStacktraceDescription(std::stacktrace::current()[2].description());
-  std::lock_guard lock{map_mutex};
-  if (location_method_mapping.contains(id)) {
-    return;
+void StacktraceAnalyzer::Initialize() {
+  // If the functions are not displayed correctly, there might be an issue with
+  // a second parameter. It should be a path do .pdb file. When it's set to 0,
+  // program will try to find the .pdb in the working directory and under some
+  // eviromental variables. Refer to docs.
+  if (!SymInitialize(GetCurrentProcess(), 0, true)) {
+    ErrorExit();
   }
-  location_method_mapping[id] = method_name;
 }
 
 void StacktraceAnalyzer::PrintOut() {
-  if (!STACKTRACE_LOG) {
-    return;
-  }
   const auto trace = std::stacktrace::current();
-
-  std::lock_guard lock{map_mutex};
-  // Start from 2nd position since:
-  // 0th function is std::stacktrace::current();
-  // 1st function is ::PrintOut()
+  // Start from 1nd position since:
+  // 0th function is always common::utility::StacktraceAnalyzer::PrintOut
+  // "Last" (chronologically they were first) 6 calls are irrelevant as they are
+  // main thread creation and program startup:
+  // server!invoke_main+0x39
+  // server!__scrt_common_main_seh+0x132
+  // server!__scrt_common_main+0xE
+  // server!mainCRTStartup+0xE
+  // KERNEL32!BaseThreadInitThunk+0x17
+  // ntdll!RtlUserThreadStart+0x2C
+  // If you need to debug those I doubt that this little tool is helping
+  // you - you're cooked.
   std::print("Stacktrace:\n");
-  for (auto i{2uz}; i < trace.size(); i++) {
-    const u64 id = ParseStacktraceDescription(trace[i].description());
-    if (location_method_mapping.contains(id)) {
-      std::print("\t{} >>> {}\n", i - 2, location_method_mapping[id]);
-    } else {
-      std::print("\t{} >>> Unrecognized method\n", i - 2);
-    }
+  for (auto i{1uz}; i < trace.size() - 6; i++) {
+    std::print("\t {} >>>{}\n", i - 1, trace[i].description());
   }
   std::print("\n");
 }

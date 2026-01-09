@@ -22,6 +22,10 @@ class MatchMaker {
     // thread/jthread constructor.
     void Start();
 
+    // Ends the MatchMaker's loop. Players will be returned to the lobby, no
+    // further games will be assembled.
+    void Stop();
+
     // Creates a MatchConductor, passes the ownership of the players currently
     // in the intermediate_buffer_ to it, and starts the game.
     void AssembleGame();

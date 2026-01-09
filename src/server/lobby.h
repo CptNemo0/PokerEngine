@@ -1,17 +1,21 @@
 #ifndef SERVER_LOBBY_H_
 #define SERVER_LOBBY_H_
 
+#include <chrono>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <print>
 #include <queue>
+#include <ratio>
 #include <utility>
 
 #include "server.h"
 #include "stacktrace_analyzer.h"
 
 namespace server {
+
+using namespace std::literals::chrono_literals;
 
 class MatchMaker;
 
@@ -34,7 +38,6 @@ class Lobby {
     }
 
     void Push(const Connection& value) {
-      TRACE_CURRENT_FUNCTION();
       common::utility::StacktraceAnalyzer::PrintOut();
       {
         std::lock_guard lock{mutex_};
@@ -45,7 +48,6 @@ class Lobby {
     }
 
     void Push(Connection&& value) {
-      TRACE_CURRENT_FUNCTION();
       {
         std::lock_guard lock{mutex_};
         data_.push(std::move(value));
@@ -55,7 +57,6 @@ class Lobby {
     }
 
     bool TryPop(Connection& result) {
-      TRACE_CURRENT_FUNCTION();
       std::lock_guard lock{mutex_};
       if (data_.empty()) {
         return false;
@@ -69,7 +70,6 @@ class Lobby {
     }
 
     std::unique_ptr<Connection> TryPop() {
-      TRACE_CURRENT_FUNCTION();
       std::lock_guard lock{mutex_};
 
       if (data_.empty()) {
@@ -84,24 +84,32 @@ class Lobby {
       return return_value;
     }
 
-    void WaitPop(server::Server::Connection& result) {
-      TRACE_CURRENT_FUNCTION();
+    bool
+    WaitPop(server::Server::Connection& result,
+            const std::chrono::duration<i32, std::ratio<1, 1>> wait_time = 1s) {
       std::unique_lock lock{mutex_};
-      data_cv_.wait(lock, [&]() {
-        return !data_.empty();
-      });
+      if (!data_cv_.wait_for(lock, wait_time, [&]() {
+            return !data_.empty();
+          })) {
+        return false;
+      }
+
       // Moving the data out, since the queue will pop it anyway.
       result = std::move(this->data_.front());
 
       data_.pop();
+      return true;
     }
 
-    std::unique_ptr<Connection> WaitPop() {
-      TRACE_CURRENT_FUNCTION();
+    std::unique_ptr<Connection>
+    WaitPop(const std::chrono::duration<i32, std::ratio<1, 1>> wait_time = 1s) {
       std::unique_lock lock{mutex_};
-      data_cv_.wait(lock, [&]() {
-        return !data_.empty();
-      });
+
+      if (!data_cv_.wait_for(lock, wait_time, [&]() {
+            return !data_.empty();
+          })) {
+        return nullptr;
+      }
 
       // Moving the data out, since the queue will pop it anyway.
       std::unique_ptr<Connection> return_value =

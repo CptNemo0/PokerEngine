@@ -14,7 +14,6 @@
 #include <utility>
 
 #include "lobby.h"
-#include "stacktrace_analyzer.h"
 
 namespace server {
 
@@ -24,11 +23,9 @@ Server::Server(int port, const std::string_view& host, Lobby& lobby)
 }
 
 void Server::Start() {
-  TRACE_CURRENT_FUNCTION();
   server_->setOnConnectionCallback(
     [&](std::weak_ptr<ix::WebSocket> webSocket,
         std::shared_ptr<ix::ConnectionState> connectionState) {
-      TRACE_CURRENT_FUNCTION();
       std::print("New connection: {}\n", connectionState->getRemoteIp());
       auto ws = webSocket.lock();
       if (!ws) {
@@ -47,7 +44,6 @@ void Server::Start() {
 }
 
 void Server::MessageHandler::operator()(const ix::WebSocketMessagePtr& msg) {
-  TRACE_CURRENT_FUNCTION();
   using MessageType = ix::WebSocketMessageType;
   switch (msg->type) {
   case MessageType::Open:
@@ -90,7 +86,6 @@ void Server::MessageHandler::operator()(const ix::WebSocketMessagePtr& msg) {
 void Server::OnNewConnectionEstablished(
   std::weak_ptr<ix::WebSocket> web_socket,
   std::shared_ptr<ix::ConnectionState> state) {
-  TRACE_CURRENT_FUNCTION();
   lobby_.Push({web_socket, state});
 }
 
