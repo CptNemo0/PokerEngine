@@ -14,12 +14,15 @@
 #include <utility>
 
 #include "lobby.h"
+#include "server_manager.h"
 
 namespace server {
 
 Server::Server(int port, const std::string_view& host, Lobby& lobby)
   : server_(std::make_unique<ix::WebSocketServer>(port, host.data())),
-    lobby_(lobby) {
+    lobby_(lobby), server_manager_observation_(this) {
+  server_manager_observation_.Observe(
+    std::addressof(ServerManager::Instance()));
 }
 
 void Server::Start() {
@@ -81,6 +84,10 @@ void Server::MessageHandler::operator()(const ix::WebSocketMessagePtr& msg) {
   case MessageType::Pong:
     break;
   }
+}
+
+void Server::End() {
+  server_->stop();
 }
 
 void Server::OnNewConnectionEstablished(

@@ -63,18 +63,8 @@ void StacktraceAnalyzer::PrintOut() {
   const auto trace = std::stacktrace::current();
   // Start from 1nd position since:
   // 0th function is always common::utility::StacktraceAnalyzer::PrintOut
-  // "Last" (chronologically they were first) 6 calls are irrelevant as they are
-  // main thread creation and program startup:
-  // server!invoke_main+0x39
-  // server!__scrt_common_main_seh+0x132
-  // server!__scrt_common_main+0xE
-  // server!mainCRTStartup+0xE
-  // KERNEL32!BaseThreadInitThunk+0x17
-  // ntdll!RtlUserThreadStart+0x2C
-  // If you need to debug those I doubt that this little tool is helping
-  // you - you're cooked.
   std::print("Stacktrace:\n");
-  for (auto i{1uz}; i < trace.size() - 6; i++) {
+  for (auto i{1uz}; i < trace.size(); i++) {
     std::print("\t {} >>>{}\n", i - 1, trace[i].description());
   }
   std::print("\n");

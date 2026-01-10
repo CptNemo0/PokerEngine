@@ -8,6 +8,8 @@ set(SOURCE_FILES
     match_conductor.cc
     match_conductor.h
     server_constants.h
+    server_manager.cc
+    server_manager.h
     model/deck.cc
     model/deck.h
     model/hand_evaluator.cc

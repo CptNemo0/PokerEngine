@@ -14,13 +14,15 @@
 #include "ixwebsocket/IXWebSocketServer.h"
 
 #include "aliasing.h"
+#include "scoped_observation.h"
+#include "server_manager.h"
 #include "stacktrace_analyzer.h"
 
 namespace server {
 
 class Lobby;
 
-class Server {
+class Server : public ServerManager::Observer {
   public:
     struct Connection {
         std::weak_ptr<ix::WebSocket> web_socket{};
@@ -60,15 +62,9 @@ class Server {
 
     Server(int port, const std::string_view& host, Lobby& lobby);
 
-    void Start();
+    virtual void Start() override;
 
-    void Wait() {
-      server_->wait();
-    }
-
-    void Stop() {
-      server_->stop();
-    }
+    virtual void End() override;
 
     void OnNewConnectionEstablished(std::weak_ptr<ix::WebSocket> web_socket,
                                     std::shared_ptr<ix::ConnectionState> state);
@@ -84,6 +80,9 @@ class Server {
 
     std::unique_ptr<ix::WebSocketServer> server_;
     Lobby& lobby_;
+
+    common::utility::ScopedObservation<ServerManager, Server>
+      server_manager_observation_;
 };
 
 } // namespace server

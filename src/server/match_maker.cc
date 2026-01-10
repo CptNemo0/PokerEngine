@@ -8,27 +8,38 @@
 #include "lobby.h"
 #include "match_conductor.h"
 #include "server_constants.h"
-
-namespace {
-
-std::atomic_bool should_end{false};
-
-} // namespace
+#include "server_manager.h"
 
 namespace server {
 
-MatchMaker::MatchMaker(Lobby& lobby) : lobby_(lobby) {
+MatchMaker::MatchMaker(Lobby& lobby)
+  : lobby_(lobby), sever_manager_observation_(this) {
+  sever_manager_observation_.Observe(std::addressof(ServerManager::Instance()));
 }
 
 void MatchMaker::Start() {
+  if (!matchmaker_thread.joinable()) {
+    matchmaker_thread = std::thread(&MatchMaker::Run, this);
+  }
+}
+
+void MatchMaker::End() {
+  stop_.store(true);
+  if (matchmaker_thread.joinable()) {
+    matchmaker_thread.join();
+  }
+  stop_.store(false);
+}
+
+void MatchMaker::Run() {
   u64 current_index = 0;
   while (true) {
-    if (lobby_.WaitPop(intermediate_buffer_[current_index])) {
-      current_index++;
+    if (stop_) {
+      break;
     }
 
-    if (should_end.load(std::memory_order::acquire)) {
-      break;
+    if (lobby_.WaitPop(intermediate_buffer_[current_index])) {
+      current_index++;
     }
 
     if (current_index == 3) {
@@ -40,10 +51,6 @@ void MatchMaker::Start() {
   for (auto i{0uz}; i < current_index; i++) {
     lobby_.Push(std::move(intermediate_buffer_[i]));
   }
-}
-
-void MatchMaker::Stop() {
-  should_end.store(true, std::memory_order_release);
 }
 
 void MatchMaker::AssembleGame() {

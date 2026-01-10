@@ -6,7 +6,8 @@
 
 namespace common::utility {
 
-template <class T> class sorted_vector {
+template <class T>
+class sorted_vector {
   public:
     using container_type = std::vector<T>;
     using size_type = container_type::size_type;
