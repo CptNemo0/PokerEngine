@@ -1,8 +1,11 @@
+#include <cstddef>
+#include <cstdint>
 #include <format>
 #include <iostream>
 #include <memory>
 #include <optional>
 #include <print>
+#include <span>
 #include <string>
 
 #include <ixwebsocket/IXConnectionState.h>
@@ -10,6 +13,7 @@
 #include <ixwebsocket/IXWebSocket.h>
 #include <thread>
 #include <utility>
+#include <vector>
 
 #include "aliasing.h"
 
@@ -35,8 +39,8 @@ int main() {
 
   server::Server server{server::gPort, server::gHost, lobby};
 
-  server::MatchMaker matchmaker{lobby};
-
+  std::unique_ptr<server::MatchMaker> matchmaker =
+    std::make_unique<server::MatchMaker>(lobby);
   std::jthread matchmaker_thread{&server::MatchMaker::Start,
                                  std::move(matchmaker)};
 
@@ -47,8 +51,6 @@ int main() {
     std::cin >> a;
   }
 
-  matchmaker.Stop();
-  matchmaker_thread.join();
   server.Stop();
 
   return 0;

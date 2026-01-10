@@ -1,5 +1,6 @@
 #include "stacktrace_analyzer.h"
 
+#include <mutex>
 #include <windows.h> // Order of inclusion actually matters on windows. A.D. 2026.
 
 #include <cstdio>
@@ -18,6 +19,8 @@
 #include "aliasing.h"
 
 namespace {
+
+std::mutex print_mutex;
 
 // Retrives error message and displays a pop up with it.
 // This is taken straight out of Windows API reference.
@@ -55,6 +58,8 @@ void StacktraceAnalyzer::Initialize() {
 }
 
 void StacktraceAnalyzer::PrintOut() {
+  // So only one thread can write at the same time.
+  std::lock_guard lock{print_mutex};
   const auto trace = std::stacktrace::current();
   // Start from 1nd position since:
   // 0th function is always common::utility::StacktraceAnalyzer::PrintOut

@@ -73,11 +73,6 @@ class Server {
     void OnNewConnectionEstablished(std::weak_ptr<ix::WebSocket> web_socket,
                                     std::shared_ptr<ix::ConnectionState> state);
 
-    // void OnConnectionClosed(const Connection& connection) {};
-    //
-    // void OnMessageReceived(const std::string& str,
-    //                        const Connection& connection) {};
-
   private:
     struct MessageHandler {
         std::weak_ptr<ix::WebSocket> web_socket{};
