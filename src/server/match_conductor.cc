@@ -1,26 +1,24 @@
-#include <array>
 #include <chrono>
 #include <format>
 #include <print>
 #include <thread>
 #include <utility>
+#include <vector>
 
 #include "lobby.h"
 #include "match_conductor.h"
 #include "server.h"
-#include "server_constants.h"
 
 namespace server {
 
 using namespace std::literals::chrono_literals;
 
-MatchConductor::MatchConductor(
-  std::array<Server::Connection, gNumberOfPlayersInGame>&& players,
-  Lobby& lobby)
+MatchConductor::MatchConductor(std::vector<Server::Connection>&& players,
+                               Lobby& lobby)
   : players_(std::move(players)), lobby_(lobby) {
   // Placeholder logic
   std::print("Starting a game with players: ");
-  for (const auto& player : players) {
+  for (const auto& player : players_) {
     std::print("{} ", player.id);
   }
   std::print("\n");

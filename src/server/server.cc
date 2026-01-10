@@ -1,5 +1,6 @@
 #include "server.h"
 
+#include "connection_closure_handler.h"
 #include "ixwebsocket/IXConnectionState.h"
 #include "ixwebsocket/IXWebSocket.h"
 #include "ixwebsocket/IXWebSocketMessage.h"
@@ -18,9 +19,11 @@
 
 namespace server {
 
-Server::Server(int port, const std::string_view& host, Lobby& lobby)
+Server::Server(int port, const std::string_view& host, Lobby& lobby,
+               ConnectionClosureHandler& closure_handler)
   : server_(std::make_unique<ix::WebSocketServer>(port, host.data())),
-    lobby_(lobby), server_manager_observation_(this) {
+    lobby_(lobby), closure_handler_(closure_handler),
+    server_manager_observation_(this) {
   server_manager_observation_.Observe(
     std::addressof(ServerManager::Instance()));
 }
@@ -36,7 +39,7 @@ void Server::Start() {
       }
 
       ws->setOnMessageCallback(
-        MessageHandler{webSocket, connectionState, this});
+        MessageHandler{webSocket, connectionState, this, &closure_handler_});
     });
 
   const auto& [result, error] = server_->listen();
@@ -63,9 +66,11 @@ void Server::MessageHandler::operator()(const ix::WebSocketMessagePtr& msg) {
     break;
 
   case MessageType::Close:
-    // /std::print("Closing connection [{}].\nReason: {}\nCode: {}\n",
-    // connection.state->getId(), msg->closeInfo.reason,
-    // msg->closeInfo.code);
+    std::print("Closing connection [{}].\nReason: {}\nCode: {}\n",
+               state->getId(), msg->closeInfo.reason, msg->closeInfo.code);
+    if (closure_handler) {
+      closure_handler->OnConnectionClosed(state.get());
+    }
     // /server->OnConnectionClosed(connection);
     break;
 

@@ -1,6 +1,7 @@
 #ifndef SERVER_SERVER_MANAGER_H_
 #define SERVER_SERVER_MANAGER_H_
 
+#include "connection_closure_handler.h"
 #include <condition_variable>
 #include <iostream>
 #include <memory>
@@ -15,8 +16,13 @@ class Lobby;
 class MatchMaker;
 class Server;
 
+// ServerManager - top level class responsible for creation, initialization,
+// start and cleanup of the program's main components.
 class ServerManager {
   public:
+    // Main components of the program that run their separate threads must
+    // depend on ServerManager for calling knowing when to start and finish
+    // execution. ServerManager::Observer class provides this functionality.
     class Observer {
       public:
         // Observer should not try to remove itself from the observers_
@@ -90,15 +96,25 @@ class ServerManager {
 
     ServerManager();
 
-    std::unique_ptr<Lobby> lobby_{nullptr};
-    std::unique_ptr<Server> server_{nullptr};
-    std::unique_ptr<MatchMaker> match_maker_{nullptr};
-
     mutable std::mutex observers_mutex_;
-    std::vector<Observer*> observers_;
-
     mutable std::mutex wait_mutex_;
     std::condition_variable wait_cv_;
+
+    // Connection Closure Handler - handles normal and abnormal disconnections.
+    std::unique_ptr<ConnectionClosureHandler> connection_closure_handler_;
+
+    // Lobby - a waiting room for the connected players.
+    std::unique_ptr<Lobby> lobby_{nullptr};
+
+    // Server - main networking component - handles WebSocket logic.
+    std::unique_ptr<Server> server_{nullptr};
+
+    // Matchmaker - matchmaking system that accesses lobby and assembles a squad
+    // of players for a game.
+    std::unique_ptr<MatchMaker> match_maker_{nullptr};
+
+    // Collection of observers, contains main components of the program.
+    std::vector<Observer*> observers_;
 };
 
 } // namespace server

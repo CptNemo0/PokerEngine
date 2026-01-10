@@ -1,11 +1,11 @@
 #include "server_manager.h"
 
-#include <algorithm>
 #include <memory>
 #include <mutex>
 #include <ranges>
 #include <thread>
 
+#include "connection_closure_handler.h"
 #include "lobby.h"
 #include "match_maker.h"
 #include "server.h"
@@ -23,14 +23,17 @@ void ServerManager::AddObserver(Observer* observer) {
 
 void ServerManager::RemoveObserver(Observer* observer) {
   std::lock_guard lock{observers_mutex_};
-  const auto result = std::ranges::remove(observers_, observer);
+  auto _ = std::erase(observers_, observer);
 }
 
 void ServerManager::Initialize() {
-  lobby_ = std::make_unique<Lobby>();
+  connection_closure_handler_ = std::make_unique<ConnectionClosureHandler>();
+  lobby_ = std::make_unique<Lobby>(*(connection_closure_handler_.get()));
   server_ =
-    std::make_unique<Server>(server::gPort, server::gHost, *lobby_.get());
-  match_maker_ = std::make_unique<MatchMaker>(*lobby_.get());
+    std::make_unique<Server>(server::gPort, server::gHost, *lobby_.get(),
+                             *connection_closure_handler_.get());
+  match_maker_ = std::make_unique<MatchMaker>(
+    *lobby_.get(), *connection_closure_handler_.get());
 }
 
 void ServerManager::Start() {

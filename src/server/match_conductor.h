@@ -1,11 +1,10 @@
 #ifndef SERVER_MATCH_CONDUCTOR_H_
 #define SERVER_MATCH_CONDUCTOR_H_
 
-#include <array>
+#include <vector>
 
 #include "lobby.h"
 #include "server.h"
-#include "server_constants.h"
 
 namespace server {
 
@@ -17,9 +16,7 @@ class MatchConductor {
   public:
     // MatchMaker will move in the array of Connections into MachConductor's
     // constructor for this game since it has not need for it.
-    MatchConductor(
-      std::array<Server::Connection, gNumberOfPlayersInGame>&& players,
-      Lobby& lobby);
+    MatchConductor(std::vector<Server::Connection>&& players, Lobby& lobby);
     ~MatchConductor();
 
     // Conducts a game. If a player disconnects from the game the game is
@@ -36,7 +33,7 @@ class MatchConductor {
     void ReturnPlayersToTheLobby();
 
     // Participants.
-    std::array<Server::Connection, gNumberOfPlayersInGame> players_;
+    std::vector<Server::Connection> players_;
     // Reference to the lobby where players should return after the finished
     // game.
     Lobby& lobby_;

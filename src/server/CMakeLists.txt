@@ -10,6 +10,8 @@ set(SOURCE_FILES
     server_constants.h
     server_manager.cc
     server_manager.h
+    connection_closure_handler.cc
+    connection_closure_handler.h
     model/deck.cc
     model/deck.h
     model/hand_evaluator.cc

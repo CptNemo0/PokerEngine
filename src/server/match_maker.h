@@ -1,33 +1,41 @@
 #ifndef SERVER_MATCH_MAKER_H_
 #define SERVER_MATCH_MAKER_H_
 
-#include <array>
 #include <atomic>
+#include <cstddef>
+#include <mutex>
 #include <thread>
+#include <vector>
 
+#include "connection_closure_handler.h"
+#include "ixwebsocket/IXConnectionState.h"
 #include "lobby.h"
 #include "scoped_observation.h"
 #include "server.h"
-#include "server_constants.h"
 #include "server_manager.h"
 
 namespace server {
 
-// MatchMaker class is responsible for assembling players for a game. When a new
-// player enters a lobby, MatchMaker is awoken by the conditional variable. It
-// moves the new player form the lobby to the intermediate_buffer_. When
-// gNumberOfPlayersInGame has been moved a new MatchConductor object is created
-// and contents of the intermediate_buffer is moved to it. When Matchmaker is
-// ordered to finish, it will return it's players to the Lobby.
-class MatchMaker : public ServerManager::Observer {
+// MatchMaker class is responsible for assembling players for a game. It
+// cooperates very closely with the lobby class. It pops players waiting in the
+// lobby and assembles games out of them.
+// Implements both
+// 1. ServerManager::Observer to know when to start and when to
+// finish execution,
+// 2. ConnectionClosureHandler::Observer to check whether the player that
+// disconnected was one of the players in the intermediate buffer.
+class MatchMaker : public ServerManager::Observer,
+                   public ConnectionClosureHandler::Observer {
   public:
-    explicit MatchMaker(Lobby& lobby);
+    MatchMaker(Lobby& lobby, ConnectionClosureHandler& closure_handler);
 
     // Creates a matchmaker_thread that will execute Run() method.
     virtual void Start() override;
 
     // Sets stop_ to false, than waits for the matchmaker_thread to join.
     virtual void End() override;
+
+    size_t OnConnectionClosed(ix::ConnectionState* state) override;
 
   private:
     // Executes MatchMaker main loop. It should be called as an argument for a
@@ -36,16 +44,21 @@ class MatchMaker : public ServerManager::Observer {
 
     // Creates a MatchConductor, passes the ownership of the players currently
     // in the intermediate_buffer_ to it, and starts the game.
-    void AssembleGame();
+    void AssembleGame(std::unique_lock<std::mutex> lock);
+
+    std::mutex buffer_mutex_;
 
     std::thread matchmaker_thread;
     std::atomic<bool> stop_{false};
 
     server::Lobby& lobby_;
-    std::array<Server::Connection, gNumberOfPlayersInGame> intermediate_buffer_;
+    std::vector<Server::Connection> intermediate_buffer_;
 
     common::utility::ScopedObservation<ServerManager, MatchMaker>
       sever_manager_observation_;
+
+    common::utility::ScopedObservation<ConnectionClosureHandler, MatchMaker>
+      closure_handler_observation_;
 };
 
 } // namespace server
