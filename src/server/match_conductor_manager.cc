@@ -24,10 +24,12 @@ MatchConductorManager::MatchConductorManager()
 void MatchConductorManager::CreateMatchConductor(
   std::vector<std::shared_ptr<Server::Connection>> connections, Lobby& lobby,
   MatchConductorManager& conductor_manager) {
+  if (finish_requested) {
+    return;
+  }
+
   {
-    if (finish_requested) {
-      return;
-    }
+    // Cleans up finished games. J threads will join automatically upon removal.
     std::lock_guard lock{conductors_mutex_};
 
     std::size_t result = std::erase_if(
@@ -37,6 +39,7 @@ void MatchConductorManager::CreateMatchConductor(
       });
   }
 
+  // Creates a new MatchConductor and starts its thread.
   std::unique_ptr<MatchConductor> match_conductor =
     std::make_unique<MatchConductor>(std::move(connections), lobby,
                                      conductor_manager);

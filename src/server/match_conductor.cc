@@ -72,14 +72,14 @@ void MatchConductor::ConductGame() {
         ws->send(std::format("Welcome to the game player: {}", player->id));
       } else {
         finish_reason_.store(FinishReason::kPlayerLeft);
-        FinishTheGame();
+        Finish();
         return;
       }
     }
 
     std::this_thread::sleep_for(5s);
 
-    FinishTheGame();
+    Finish();
   }
 }
 
@@ -91,7 +91,7 @@ void MatchConductor::ForceFinish() {
   stop_ = true;
 }
 
-void MatchConductor::FinishTheGame() {
+void MatchConductor::Finish() {
   for (auto& player : players_) {
     if (!player->closed) {
       auto ws = player->web_socket.lock();

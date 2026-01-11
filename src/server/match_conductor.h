@@ -15,7 +15,12 @@ class MatchConductorManager;
 // MatchConductor is responsible for conducting a singular game of poker. It is
 // initialized with a collection of Connections allowing for communication with
 // the participating players. When the game is concluded, players return to the
-// lobby and can be selected for the next match.
+// lobby and can be selected for the next match. If a participant disconnects
+// midway through the game they will not be returned to the lobby. When a player
+// disconnects they will be removed automatically from the connections_
+// collection of the Server. This will make the reference stored in the players
+// connection of MatchConductor the last one, thus when the game concludes the
+// disconnected player will be destroyed.
 class MatchConductor {
   public:
     enum class FinishReason {
@@ -25,32 +30,28 @@ class MatchConductor {
       kReasonsNum
     };
 
-    // MatchMaker will move in the array of Connections into MachConductor's
-    // constructor for this game since it has not need for it.
+    // MatchConductorManaged should move in the vector of Connections into
+    // MachConductor's making MatchConductor a second owner of those players.
+    // First one being the Server that has a "master" reference.
     MatchConductor(std::vector<std::shared_ptr<Server::Connection>> players,
                    Lobby& lobby,
                    MatchConductorManager& match_conductor_manager);
     ~MatchConductor();
 
-    // Conducts a game. If a player disconnects from the game the game is
-    // terminated and all of the connected participants are returned to the
-    // lobby.
-    // I know that this is a rather extreme solution, but for now it will do the
-    // trick.
     void ConductGame();
 
     bool HasFinished();
-
     void ForceFinish();
 
   private:
     // Returns the participants to the lobby. If a participant has disconnected
     // during the game or has left before the game had a chance to begin they
-    // are not returned to the lobby.
-    void FinishTheGame();
+    // are not returned to the lobby and destroyed.
+    void Finish();
 
     // Participants.
     std::vector<std::shared_ptr<Server::Connection>> players_;
+
     // Reference to the lobby where players should return after the finished
     // game.
     Lobby& lobby_;

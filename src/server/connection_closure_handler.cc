@@ -1,5 +1,5 @@
 #include "connection_closure_handler.h"
-#include "ixwebsocket/IXConnectionState.h"
+
 #include <algorithm>
 #include <mutex>
 

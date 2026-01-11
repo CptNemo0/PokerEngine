@@ -26,6 +26,8 @@ class MatchMaker;
 // Lobby implements a thread safe deque, but lobby uses it as a queue. I just
 // need the arbitrary index access. Copy/Move constructor/assignements are
 // deleted since I cannot foresee a need for them at the moment.
+// Implements ConnectionClosureHandler::Observer to remove any closed
+// connections stuck in the lobby.
 class Lobby : public ConnectionClosureHandler::Observer {
   public:
     explicit Lobby(ConnectionClosureHandler& closure_handler)

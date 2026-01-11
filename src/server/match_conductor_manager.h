@@ -18,14 +18,16 @@ namespace server {
 
 class MatchConductor;
 
+// MatchConductorManager is responsible for creation and destruction
+// MatchConductors.
 class MatchConductorManager : public ServerManager::Observer {
   public:
     MatchConductorManager();
+    // Creates a match conductor and starts a new game.
+    // Cleans up all finished games.
     void CreateMatchConductor(
       std::vector<std::shared_ptr<Server::Connection>> connections,
       Lobby& lobby, MatchConductorManager& conductor_manager);
-    void MapIdToConductor(u64 id, MatchConductor* conductor);
-    void RemoveIdConductorMapping(u64 id, MatchConductor* conductor);
 
     virtual void Start() override {};
 
@@ -36,6 +38,7 @@ class MatchConductorManager : public ServerManager::Observer {
     std::mutex conductors_mutex_;
     std::vector<std::pair<std::unique_ptr<MatchConductor>, std::jthread>>
       match_conductors_;
+
     common::utility::ScopedObservation<ServerManager, MatchConductorManager>
       server_manager_observation_;
 };

@@ -115,6 +115,7 @@ class ServerManager {
     // Lobby - a waiting room for the connected players.
     std::unique_ptr<Lobby> lobby_{nullptr};
 
+    // MatchConductorManager - creates and destroys games.
     std::unique_ptr<MatchConductorManager> match_conductor_manager_{nullptr};
 
     // Matchmaker - matchmaking system that accesses lobby and assembles a squad
