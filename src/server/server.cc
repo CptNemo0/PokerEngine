@@ -9,7 +9,6 @@
 
 #include <algorithm>
 #include <charconv>
-#include <cstdlib>
 #include <format>
 #include <memory>
 #include <mutex>
@@ -116,7 +115,7 @@ void Server::OnNewConnectionEstablished(
     std::make_shared<Connection>(web_socket, state);
   {
     std::lock_guard lock{connections_mutex_};
-    // connections_.push_back(connection);
+    connections_.push_back(connection);
   }
   lobby_.Push(std::move(connection));
 }

@@ -24,6 +24,8 @@ FinishReasonToString(server::MatchConductor::FinishReason reason) {
     return "The server has forced the game to finish";
   case server::MatchConductor::FinishReason::kPlayerLeft:
     return "A player has left";
+  default:
+    return "Undefined reason";
   }
 }
 
@@ -71,10 +73,11 @@ void MatchConductor::ConductGame() {
       } else {
         finish_reason_.store(FinishReason::kPlayerLeft);
         FinishTheGame();
+        return;
       }
     }
 
-    std::this_thread::sleep_for(10s);
+    std::this_thread::sleep_for(5s);
 
     FinishTheGame();
   }
@@ -90,8 +93,9 @@ void MatchConductor::ForceFinish() {
 
 void MatchConductor::FinishTheGame() {
   for (auto& player : players_) {
-    if (!player->state->isTerminated()) {
-      if (auto ws = player->web_socket.lock()) {
+    if (!player->closed) {
+      auto ws = player->web_socket.lock();
+      if (ws) {
         ws->send(FinishReasonToString(finish_reason_.load()).data());
       }
       if (!stop_) {
@@ -99,6 +103,7 @@ void MatchConductor::FinishTheGame() {
       }
     }
   }
+  players_.clear();
   stop_ = true;
 }
 

@@ -106,7 +106,6 @@ class ServerManager {
     std::vector<Observer*> observers_;
 
     // Connection Closure Handler - handles normal and abnormal disconnections.
-    // This must be declared above it's observes: Lobby, MatchMaker
     std::unique_ptr<ConnectionClosureHandler> connection_closure_handler_{
       nullptr};
 

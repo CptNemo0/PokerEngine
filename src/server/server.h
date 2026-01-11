@@ -85,8 +85,6 @@ class Server : public ServerManager::Observer {
 
     void RemoveObserver(Observer* observer);
 
-    void OnConnectionClosed(ix::ConnectionState* state);
-
   private:
     struct MessageHandler {
         std::weak_ptr<ix::WebSocket> web_socket{};
