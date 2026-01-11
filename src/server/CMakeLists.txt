@@ -12,6 +12,8 @@ set(SOURCE_FILES
     server_manager.h
     connection_closure_handler.cc
     connection_closure_handler.h
+    match_conductor_manager.cc
+    match_conductor_manager.h
     model/deck.cc
     model/deck.h
     model/hand_evaluator.cc

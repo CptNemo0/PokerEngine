@@ -2,19 +2,24 @@
 
 #include <memory>
 #include <mutex>
+#include <print>
 #include <ranges>
 #include <thread>
 
 #include "connection_closure_handler.h"
 #include "lobby.h"
+#include "match_conductor_manager.h"
 #include "match_maker.h"
 #include "server.h"
 #include "server_constants.h"
 
 namespace server {
 
-ServerManager::ServerManager() = default;
-ServerManager::~ServerManager() = default;
+ServerManager::ServerManager() {
+}
+
+ServerManager::~ServerManager() {
+}
 
 void ServerManager::AddObserver(Observer* observer) {
   std::lock_guard lock{observers_mutex_};
@@ -29,11 +34,13 @@ void ServerManager::RemoveObserver(Observer* observer) {
 void ServerManager::Initialize() {
   connection_closure_handler_ = std::make_unique<ConnectionClosureHandler>();
   lobby_ = std::make_unique<Lobby>(*(connection_closure_handler_.get()));
+  match_conductor_manager_ = std::make_unique<MatchConductorManager>();
   server_ =
     std::make_unique<Server>(server::gPort, server::gHost, *lobby_.get(),
                              *connection_closure_handler_.get());
   match_maker_ = std::make_unique<MatchMaker>(
-    *lobby_.get(), *connection_closure_handler_.get());
+    *lobby_.get(), *connection_closure_handler_.get(),
+    *match_conductor_manager_.get());
 }
 
 void ServerManager::Start() {
@@ -58,6 +65,7 @@ void ServerManager::End() {
   // destroyed earlier. I will probably think of a better solution since I see
   // how fragile this one is, but for now it's also a cool flex with
   // views::reverse.
+  std::print("Ending\n");
   for (Observer* observer : observers_ | std::views::reverse) {
     observer->End();
   }

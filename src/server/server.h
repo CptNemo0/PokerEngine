@@ -1,10 +1,12 @@
 #ifndef SERVER_SERVER_H_
 #define SERVER_SERVER_H_
 
+#include <atomic>
 #include <cstdint>
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <print>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -26,40 +28,44 @@ class Lobby;
 
 class Server : public ServerManager::Observer {
   public:
-    class Observer {
-      public:
-        virtual void OnConnectionClosed(ix::ConnectionState* state) = 0;
-    };
-
     struct Connection {
         std::weak_ptr<ix::WebSocket> web_socket{};
         std::shared_ptr<ix::ConnectionState> state{};
-        std::uint64_t id{(std::numeric_limits<std::uint64_t>::max)()};
-
-        Connection() = default;
+        u64 id{(std::numeric_limits<u64>::max)()};
+        std::atomic_bool closed{false};
 
         Connection(std::weak_ptr<ix::WebSocket> socket,
                    std::shared_ptr<ix::ConnectionState> connection_state)
           : web_socket(socket), state(connection_state),
             id(std::stoull(connection_state->getId())) {
+          std::print("Connection {} constructed\n", id);
         }
         Connection(const Connection& other) noexcept
           : Connection(other.web_socket, other.state) {
+          std::print("Connection {} copied\n", id);
         }
         Connection(Connection&& other) noexcept
           : web_socket(std::move(other.web_socket)),
-            state(std::move(other.state)), id(other.id) {};
+            state(std::move(other.state)), id(other.id) {
+          std::print("Connection {} moved\n", id);
+        };
 
         void operator=(const Connection& other) noexcept {
           web_socket = other.web_socket;
           state = other.state;
           id = other.id;
+          std::print("Connection {} copy assigned\n", id);
         }
         void operator=(Connection&& other) noexcept {
           web_socket = std::move(other.web_socket);
           state = std::move(other.state);
           id = std::exchange(other.id,
                              (std::numeric_limits<std::uint64_t>::max)());
+          std::print("Connection {} move assigned\n", id);
+        }
+
+        ~Connection() {
+          std::print("Connection destroyed\n");
         }
     };
 
@@ -73,6 +79,8 @@ class Server : public ServerManager::Observer {
     void OnNewConnectionEstablished(std::weak_ptr<ix::WebSocket> web_socket,
                                     std::shared_ptr<ix::ConnectionState> state);
 
+    void OnConnectionClosed(const ix::ConnectionState& state);
+
     void AddObserver(Observer* observer);
 
     void RemoveObserver(Observer* observer);
@@ -84,13 +92,14 @@ class Server : public ServerManager::Observer {
         std::weak_ptr<ix::WebSocket> web_socket{};
         std::shared_ptr<ix::ConnectionState> state{};
         Server* server{nullptr};
-        ConnectionClosureHandler* closure_handler;
 
         void operator()(const ix::WebSocketMessagePtr& msg);
     };
 
-    std::mutex observers_mutex_;
-    std::vector<Observer*> observers_;
+    std::mutex connections_mutex_;
+    std::vector<std::shared_ptr<Connection>> connections_;
+
+    std::atomic_bool stop_{false};
 
     std::unique_ptr<ix::WebSocketServer> server_;
     Lobby& lobby_;

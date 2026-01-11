@@ -2,8 +2,9 @@
 
 #include <algorithm>
 #include <atomic>
-#include <charconv>
+#include <chrono>
 #include <cstddef>
+#include <cstdlib>
 #include <memory>
 #include <mutex>
 #include <print>
@@ -13,18 +14,19 @@
 #include <winscard.h>
 
 #include "connection_closure_handler.h"
-#include "ixwebsocket/IXConnectionState.h"
 
 #include "lobby.h"
-#include "match_conductor.h"
 #include "server_constants.h"
 #include "server_manager.h"
+#include "stacktrace_analyzer.h"
 
 namespace server {
 
-MatchMaker::MatchMaker(Lobby& lobby, ConnectionClosureHandler& closure_handler)
+MatchMaker::MatchMaker(Lobby& lobby, ConnectionClosureHandler& closure_handler,
+                       MatchConductorManager& match_conductor_manager)
   : lobby_(lobby), sever_manager_observation_(this),
-    closure_handler_observation_(this) {
+    closure_handler_observation_(this),
+    conductor_manager_(match_conductor_manager) {
   sever_manager_observation_.Observe(std::addressof(ServerManager::Instance()));
   closure_handler_observation_.Observe(std::addressof(closure_handler));
   intermediate_buffer_.reserve(gNumberOfPlayersInGame);
@@ -37,23 +39,43 @@ void MatchMaker::Start() {
 }
 
 void MatchMaker::End() {
+  std::print("Matchmaker...");
   stop_.store(true);
   if (matchmaker_thread.joinable()) {
     matchmaker_thread.join();
   }
   stop_.store(false);
+  std::print("finished\n");
 }
 
-size_t MatchMaker::OnConnectionClosed(ix::ConnectionState* state) {
-  u64 id;
-  std::from_chars(state->getId().data(),
-                  state->getId().data() + state->getId().size(), id, 10);
-  auto remove_lambda = [id](const Server::Connection& connection) {
-    return connection.id == id;
-  };
+size_t MatchMaker::OnConnectionClosed(u64 id) {
+  auto remove_lambda =
+    [id](const std::shared_ptr<Server::Connection>& connection) {
+      if (!connection->closed.load()) {
+        return false;
+      }
+
+      if (connection->id == id) {
+        return true;
+      } else {
+        std::print("Connection was closed but the ids differ. Cooked!!!");
+        common::utility::StacktraceAnalyzer::PrintOut();
+        std::abort();
+      }
+    };
 
   std::lock_guard lock{buffer_mutex_};
-  return std::erase_if(intermediate_buffer_, remove_lambda);
+  if (!intermediate_buffer_.size()) {
+    return 0;
+  }
+
+  const size_t result = std::erase_if(intermediate_buffer_, remove_lambda);
+  if (result) {
+    std::print(
+      "Connection {} erased from intermediate_buffer_. Buffer size: {}\n", id,
+      intermediate_buffer_.size());
+  }
+  return result;
 }
 
 void MatchMaker::Run() {
@@ -61,23 +83,21 @@ void MatchMaker::Run() {
     if (stop_) {
       break;
     }
-    std::print("Run\n");
     if (lobby_.Empty()) {
       std::print("Lobby empty waiting\n");
       std::unique_lock lock{lobby_.mutex_};
-      lobby_.data_cv_.wait(lock);
+      lobby_.data_cv_.wait_for(lock, 1s);
     }
 
     {
       std::scoped_lock lock{lobby_.mutex_, buffer_mutex_};
       if (lobby_.data_.empty() ||
           intermediate_buffer_.size() == gNumberOfPlayersInGame) {
-        std::print("Deque empty or Buffer full\n");
-        return;
+      } else {
+        std::print("Push back\n");
+        intermediate_buffer_.push_back(std::move(lobby_.data_.front()));
+        lobby_.data_.pop_front();
       }
-      std::print("Push back\n");
-      intermediate_buffer_.push_back(std::move(lobby_.data_.front()));
-      lobby_.data_.pop_front();
     }
 
     {
@@ -91,15 +111,15 @@ void MatchMaker::Run() {
 }
 
 void MatchMaker::AssembleGame(std::unique_lock<std::mutex> lock) {
-  std::vector<Server::Connection> players(gNumberOfPlayersInGame);
+  std::vector<std::shared_ptr<Server::Connection>> players(
+    gNumberOfPlayersInGame);
   std::move(intermediate_buffer_.begin(), intermediate_buffer_.end(),
             players.begin());
   intermediate_buffer_.clear();
   lock.unlock();
-  MatchConductor match_conductor{std::move(players), lobby_};
-  std::jthread match_thread{&MatchConductor::ConductGame,
-                            std::move(match_conductor)};
-  match_thread.detach();
+
+  conductor_manager_.CreateMatchConductor(std::move(players), lobby_,
+                                          conductor_manager_);
 }
 
 } // namespace server

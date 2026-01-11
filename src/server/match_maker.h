@@ -3,13 +3,14 @@
 
 #include <atomic>
 #include <cstddef>
+#include <memory>
 #include <mutex>
 #include <thread>
 #include <vector>
 
 #include "connection_closure_handler.h"
-#include "ixwebsocket/IXConnectionState.h"
 #include "lobby.h"
+#include "match_conductor_manager.h"
 #include "scoped_observation.h"
 #include "server.h"
 #include "server_manager.h"
@@ -27,7 +28,8 @@ namespace server {
 class MatchMaker : public ServerManager::Observer,
                    public ConnectionClosureHandler::Observer {
   public:
-    MatchMaker(Lobby& lobby, ConnectionClosureHandler& closure_handler);
+    MatchMaker(Lobby& lobby, ConnectionClosureHandler& closure_handler,
+               MatchConductorManager& conductor_manager);
 
     // Creates a matchmaker_thread that will execute Run() method.
     virtual void Start() override;
@@ -35,7 +37,7 @@ class MatchMaker : public ServerManager::Observer,
     // Sets stop_ to false, than waits for the matchmaker_thread to join.
     virtual void End() override;
 
-    size_t OnConnectionClosed(ix::ConnectionState* state) override;
+    virtual size_t OnConnectionClosed(u64 id) override;
 
   private:
     // Executes MatchMaker main loop. It should be called as an argument for a
@@ -51,8 +53,9 @@ class MatchMaker : public ServerManager::Observer,
     std::thread matchmaker_thread;
     std::atomic<bool> stop_{false};
 
-    server::Lobby& lobby_;
-    std::vector<Server::Connection> intermediate_buffer_;
+    Lobby& lobby_;
+    MatchConductorManager& conductor_manager_;
+    std::vector<std::shared_ptr<Server::Connection>> intermediate_buffer_;
 
     common::utility::ScopedObservation<ServerManager, MatchMaker>
       sever_manager_observation_;

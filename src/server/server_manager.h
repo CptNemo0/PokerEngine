@@ -1,18 +1,19 @@
 #ifndef SERVER_SERVER_MANAGER_H_
 #define SERVER_SERVER_MANAGER_H_
 
-#include "connection_closure_handler.h"
 #include <condition_variable>
 #include <iostream>
 #include <memory>
 #include <mutex>
-#include <print>
 #include <string>
 #include <vector>
+
+#include "connection_closure_handler.h"
 
 namespace server {
 
 class Lobby;
+class MatchConductorManager;
 class MatchMaker;
 class Server;
 
@@ -72,7 +73,6 @@ class ServerManager {
     void End();
 
     static ServerManager& Instance() {
-      std::print("Instance\n");
       static ServerManager instance;
       return instance;
     }
@@ -87,7 +87,7 @@ class ServerManager {
           std::string line;
           while (std::getline(std::cin, line)) {
             if (line == "q" || line == "quit") {
-              ServerManager::Instance().wait_cv_.notify_all();
+              ServerManager::Instance().wait_cv_.notify_one();
               break;
             }
           }
@@ -100,21 +100,27 @@ class ServerManager {
     mutable std::mutex wait_mutex_;
     std::condition_variable wait_cv_;
 
-    // Connection Closure Handler - handles normal and abnormal disconnections.
-    std::unique_ptr<ConnectionClosureHandler> connection_closure_handler_;
+    // Collection of observers, contains main components of the program.
+    // This must be declared before unique_ptr members to ensure it is destroyed
+    // after them.
+    std::vector<Observer*> observers_;
 
-    // Lobby - a waiting room for the connected players.
-    std::unique_ptr<Lobby> lobby_{nullptr};
+    // Connection Closure Handler - handles normal and abnormal disconnections.
+    // This must be declared above it's observes: Lobby, MatchMaker
+    std::unique_ptr<ConnectionClosureHandler> connection_closure_handler_{
+      nullptr};
 
     // Server - main networking component - handles WebSocket logic.
     std::unique_ptr<Server> server_{nullptr};
 
+    // Lobby - a waiting room for the connected players.
+    std::unique_ptr<Lobby> lobby_{nullptr};
+
+    std::unique_ptr<MatchConductorManager> match_conductor_manager_{nullptr};
+
     // Matchmaker - matchmaking system that accesses lobby and assembles a squad
     // of players for a game.
     std::unique_ptr<MatchMaker> match_maker_{nullptr};
-
-    // Collection of observers, contains main components of the program.
-    std::vector<Observer*> observers_;
 };
 
 } // namespace server

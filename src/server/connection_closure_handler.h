@@ -1,10 +1,11 @@
 #ifndef SERVER_CONNECTION_CLOSURE_HANDLER_H_
 #define SERVER_CONNECTION_CLOSURE_HANDLER_H_
 
-#include "ixwebsocket/IXConnectionState.h"
 #include <cstddef>
 #include <mutex>
 #include <vector>
+
+#include "aliasing.h"
 
 namespace server {
 
@@ -31,11 +32,10 @@ class ConnectionClosureHandler {
         // will be empty, so this way threads would communicated between each
         // other that "Hey I found that rascal, don't look for it anymore."
         // Maybe the closure handler can have api for this queue.
-        virtual size_t
-        OnConnectionClosed(ix::ConnectionState* connection_state) = 0;
+        virtual size_t OnConnectionClosed(u64 id) = 0;
     };
 
-    void OnConnectionClosed(ix::ConnectionState* connection_state);
+    void OnConnectionClosed(u64 id);
 
     void AddObserver(Observer* observer);
     void RemoveObserver(Observer* observer);

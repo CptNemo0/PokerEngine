@@ -15,10 +15,10 @@ void ConnectionClosureHandler::RemoveObserver(Observer* observer) {
   const auto result = std::erase(observers_, observer);
 }
 
-void ConnectionClosureHandler::OnConnectionClosed(ix::ConnectionState* state) {
+void ConnectionClosureHandler::OnConnectionClosed(u64 id) {
   std::lock_guard lock{observers_mutex_};
-  std::ranges::for_each(observers_, [state](Observer* observer) {
-    if (observer->OnConnectionClosed(state)) {
+  std::ranges::for_each(observers_, [id](Observer* observer) {
+    if (observer->OnConnectionClosed(id)) {
       return;
     }
   });
